@@ -1,23 +1,11 @@
-# Werkzeug keeps breaking Flask!
-Werkzeug==2.1.2
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
+gunicorn==21.2.0
+jinja2==3.1.4
+pydantic-settings==2.2.1
+google-cloud-storage==2.17.0
+python-dotenv==1.0.1
 
-# Runtime dependencies
-Flask==2.1.2
-python-dotenv==0.20.0
-
-# Runtime tools
-gunicorn==20.1.0
-honcho==1.1.0
-
-# Code quality
-pylint==2.14.0
-flake8==4.0.1
-black==22.3.0
-
-# Testing dependencies
-nose==1.3.7
-pinocchio==0.4.3
-coverage==6.3.2
-
-# Utilities
-httpie==3.2.1
+# Dev and testing
+pytest==8.2.0
+flake8==7.0.0

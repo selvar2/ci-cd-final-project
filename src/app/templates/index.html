@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ app_name }} | Notes</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>{{ app_name }}</h1>
+        <p>Server-rendered page deployed to Cloud Run with CDN caching.</p>
+      </header>
+      <section class="card">
+        <h2>Notes API</h2>
+        <p>Use the API or form below to create notes that are persisted to Cloud Storage (or local disk when running locally).</p>
+        <form id="note-form">
+          <label for="title">Title</label>
+          <input id="title" name="title" type="text" maxlength="100" required />
+          <label for="content">Content</label>
+          <textarea id="content" name="content" maxlength="2000" required></textarea>
+          <button type="submit">Create note</button>
+          <p class="hint">Requests are validated server-side.</p>
+        </form>
+      </section>
+      <section class="card">
+        <h2>Existing Notes</h2>
+        <ul id="notes-list">
+          {% for note in notes %}
+          <li>
+            <h3>{{ note.title }}</h3>
+            <p>{{ note.content }}</p>
+            <span class="meta">Note ID: {{ note.id }}</span>
+          </li>
+          {% else %}
+          <li class="muted">No notes yet. Create the first one!</li>
+          {% endfor %}
+        </ul>
+      </section>
+    </main>
+    <script>
+      async function submitNote(event) {
+        event.preventDefault();
+        const title = document.getElementById('title').value;
+        const content = document.getElementById('content').value;
+        const response = await fetch('/api/v1/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, content }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          alert('Validation failed: ' + JSON.stringify(error.detail));
+          return;
+        }
+
+        const note = await response.json();
+        const list = document.getElementById('notes-list');
+        const item = document.createElement('li');
+        item.innerHTML = `<h3>${note.title}</h3><p>${note.content}</p><span class="meta">Note ID: ${note.id}</span>`;
+        list.prepend(item);
+        event.target.reset();
+      }
+
+      document.getElementById('note-form').addEventListener('submit', submitNote);
+    </script>
+  </body>
+</html>
