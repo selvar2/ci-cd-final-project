@@ -1,22 +1,34 @@
-FROM python:3.9-slim
+# syntax=docker/dockerfile:1.6
 
-# Establish a working folder
+# Builder image installs dependencies
+FROM python:3.11-slim AS builder
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 WORKDIR /app
-
-# Establish dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends gcc && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
-RUN python -m pip install -U pip wheel && \
-    pip install -r requirements.txt
+RUN pip install --upgrade pip && pip install --prefix=/install -r requirements.txt
 
-# Copy source files last because they change the most
-COPY service ./service
+# Final runtime image
+FROM python:3.11-slim AS runtime
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8080 \
+    PYTHONPATH=/app/src
+WORKDIR /app
+RUN adduser --disabled-password --gecos "" appuser && \
+    apt-get update && apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+COPY --from=builder /install /usr/local
+COPY src ./src
+COPY README.md ./README.md
 
-# Become non-root user
-RUN useradd -m -r service && \
-    chown -R service:service /app
-USER service
+ENV APP_ENVIRONMENT=production \
+    APP_ENFORCE_HTTPS=true
 
-# Run the service on port 8000
-ENV PORT 8000
-EXPOSE $PORT
-CMD ["gunicorn", "service:app", "--bind", "0.0.0.0:8000"]
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s CMD curl -f http://localhost:${PORT}/health || exit 1
+
+USER appuser
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8080", "app.main:app", "--timeout", "120"]
